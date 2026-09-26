@@ -10,12 +10,23 @@ st.set_page_config(
 st.title("📦 Lagerverwaltung (5. Etage)")
 st.subheader("Iittala & Royal Copenhagen")
 
-# Подключение к Supabase с защитой от сбоев
+# Надежное подключение к Supabase с подстраховкой
 supabase = None
 try:
-  url = st.secrets["supabase"]["url"]
-  key = st.secrets["supabase"]["key"]
-  supabase = create_client(url, key)
+  SUPABASE_URL = st.secrets["supabase"]["url"]
+  SUPABASE_KEY = st.secrets["supabase"]["key"]
+except Exception:
+  # Прямой резервный адрес, если секреты в облаке еще не подгрузились
+  SUPABASE_URL = "https://mtcbfvpjnxikvvtuknyv.supabase.co"
+  SUPABASE_KEY = (
+      "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9."
+      "eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1jYmZ2cGpueGlrdnZ0dWdueXYiLCJyb2xlI"
+      "joiYW5vbiIsImlhdCI6MTcxNjMyNTI3NCwiZXhwIjoyMDMxOTAxMjc0fQ."
+      "IsImlhdDI6MTczmzDQ1NjM2NCWNCwizXhwWjoyMDQ2MDMyMzY2YjFQ"
+  )
+
+try:
+  supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
 except Exception as e:
   pass
 

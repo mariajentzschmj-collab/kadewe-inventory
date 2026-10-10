@@ -1279,3 +1279,75 @@ if supabase is not None:
             st.sidebar.info("ℹ Noch keine kumulierten Daten in der Datenbank.")
     except Exception as hist_err:
         st.sidebar.caption("💡 Tipp: Stellen Sie sicher, dass die Tabelle `daily_sales` in Supabase existiert.")
+
+        # ==========================================
+# БЛОК: ИНВЕНТУР-СКННЕЛЬВЕИС (ИНВЕНТАРИЗАЦИЯ ДЛЯ НЕСКОЛЬКИХ СОТРУДНИКОВ)
+# ==========================================
+
+if action == "📋 Inventur-Schnelleingabe":
+    is_manager = st.session_state.get("role") == "manager"
+    agent_name = st.session_state.get("user_name", "Mitarbeiter")
+    
+    st.header("📋 Inventur-Schnelleingabe (Multi-User)" + ("" if is_manager else f" (Agent: {agent_name})"))
+    st.markdown("Hier können Mitarbeiter schnell den tatsächlichen Bestand vor Ort erfassen. Die Zählung wird zur Kontrolle an den Manager gesendet oder direkt verbucht.")
+
+    with st.form("quick_inventory_form"):
+        col_q1, col_q2 = st.columns([2, 1])
+        with col_q1:
+            inv_search = st.text_input(
+                "🔍 Artikel suchen (Name, SAP, Artikelnummer oder Barcode):",
+                placeholder="Suchbegriff eingeben...",
+                key="quick_inv_search_input"
+            )
+        with col_q2:
+            inv_counted_qty = st.number_input(
+                "Gezählte Ist-Menge:",
+                min_value=0,
+                value=0,
+                step=1,
+                key="quick_inv_counted_qty_input"
+            )
+            
+        inv_submitted = st.form_submit_button("📥 Zählung erfassen / absenden")
+
+    if inv_search and not df.empty:
+        matched_items = search_items(df, inv_search)
+        if not matched_items.empty:
+            st.markdown("### 📦 Ausgewählter Artikel:")
+            sel_item = matched_items.iloc[0]
+            
+            st.info(
+                f"**Name:** {sel_item.get('name')} | "
+                f"**Art-Nr:** {sel_item.get('article')} | "
+                f"**SAP:** {sel_item.get('sap')} | "
+                f"**System-Bestand:** {int(sel_item.get('quantity', 0))} Stk."
+            )
+            
+            if inv_submitted:
+                new_counted = int(inv_counted_qty)
+                item_id = int(sel_item.get("id")) if "id" in sel_item else None
+                item_name = str(sel_item.get("name"))
+                old_qty = int(sel_item.get("quantity", 0))
+                
+                if is_manager:
+                    if supabase is not None and item_id:
+                        try:
+                            supabase.table("inventory").update({"quantity": new_counted}).eq("id", item_id).execute()
+                            st.success(f"✅ Bestand für '{item_name}' direkt aktualisiert: Alt: {old_qty} ➔ Neu: {new_counted}")
+                            st.rerun()
+                        except Exception as e:
+                            st.error(f"Fehler beim Aktualisieren: {e}")
+                else:
+                    # Отправляем запрос на подтверждение менеджеру от конкретного сотрудника
+                    payload = {
+                        "id": item_id,
+                        "article": str(sel_item.get("article", "")),
+                        "name": item_name,
+                        "old_quantity": old_qty,
+                        "new_quantity": new_counted,
+                        "counted_by": agent_name
+                    }
+                    request_manager_approval("inventory_count", payload)
+        else:
+            if inv_submitted:
+                st.warning("⚠️ Kein Artikel zu diesem Suchbegriff gefunden. Bitte prüfen Sie die Eingabe.")

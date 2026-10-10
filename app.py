@@ -272,6 +272,7 @@ action = st.sidebar.radio(
         "📁 Katalog aus Datei hochladen",
         "📷 Live-Kamera-Scanner",
         "🖨 Etiketten drucken",
+        "📋 Inventur-Schnelleingabe",
         "📱 QR-Code für Kollegen",
     ],
 )
@@ -1280,7 +1281,7 @@ if supabase is not None:
     except Exception as hist_err:
         st.sidebar.caption("💡 Tipp: Stellen Sie sicher, dass die Tabelle `daily_sales` in Supabase existiert.")
 
-        # ==========================================
+# ==========================================
 # БЛОК: ИНВЕНТУР-СКННЕЛЬВЕИС (ИНВЕНТАРИЗАЦИЯ ДЛЯ НЕСКОЛЬКИХ СОТРУДНИКОВ)
 # ==========================================
 
